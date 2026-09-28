@@ -1,0 +1,15 @@
+node_modules
+.pytest_cache
+.terraform
+.terraform.tfstate.lock.info
+*.tfstate.backup
+credentials
+.pytest_cache
+# Terraform local state and credentials
+*.tfstate
+*.tfstate.*
+.terraform.tfstate.lock.info
+
+# Local environment files
+.env
+.env.*

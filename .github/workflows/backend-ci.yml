@@ -1,0 +1,91 @@
+name: Backend Continuous Integration
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "starter/backend/**"
+      - ".github/workflows/backend-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  Linting:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: pip
+          cache-dependency-path: starter/backend/Pipfile.lock
+
+      - name: Restore pip cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-backend-pip-${{ hashFiles('starter/backend/Pipfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-backend-pip-
+
+      - name: Install dependencies
+        working-directory: starter/backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install pipenv
+          pipenv install --dev --deploy
+
+      - name: Run lint
+        working-directory: starter/backend
+        run: pipenv run lint
+
+  Test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: pip
+          cache-dependency-path: starter/backend/Pipfile.lock
+
+      - name: Restore pip cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-backend-pip-${{ hashFiles('starter/backend/Pipfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-backend-pip-
+
+      - name: Install dependencies
+        working-directory: starter/backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install pipenv
+          pipenv install --dev --deploy
+
+      - name: Run tests
+        working-directory: starter/backend
+        env:
+          CI: true
+        run: pipenv run test
+
+  Build:
+    needs: [Linting, Test]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        working-directory: starter/backend
+        run: docker build --tag mp-backend:${{ github.sha }} .

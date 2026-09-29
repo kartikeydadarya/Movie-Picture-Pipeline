@@ -19,6 +19,7 @@ COPY Pipfile Pipfile.lock ./
 RUN pipenv install --system --deploy
 
 COPY . .
+RUN mkdir -p /var/www/app
 
 RUN mkdir -p /var/www/app
 

@@ -7,7 +7,7 @@ on:
       - main
     paths:
       - "starter/frontend/**"
-      - ".github/workflows/frontend-cd.yml"
+      - ".github/workflows/frontend-cd.yaml"
 
 permissions:
   contents: read

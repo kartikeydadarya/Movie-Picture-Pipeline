@@ -1,13 +1,13 @@
-name: Backend Continuous Deployment
+name: Backend Continuous Integration
 
 on:
   workflow_dispatch:
-  push:
+  pull_request:
     branches:
       - main
     paths:
       - "starter/backend/**"
-      - ".github/workflows/backend-cd.yml"
+      - ".github/workflows/backend-ci.yaml"
 
 permissions:
   contents: read
@@ -82,66 +82,10 @@ jobs:
   Build:
     needs: [Linting, Test]
     runs-on: ubuntu-latest
-    outputs:
-      image: ${{ steps.image.outputs.image }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
-          aws-region: us-east-1
-
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Build and push Docker image
-        id: image
+      - name: Build Docker image
         working-directory: starter/backend
-        env:
-          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          REPOSITORY: backend
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          IMAGE="$REGISTRY/$REPOSITORY:$IMAGE_TAG"
-          docker build --tag "$IMAGE" .
-          docker push "$IMAGE"
-          echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
-
-  Deploy:
-    needs: Build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
-          aws-region: us-east-1
-
-      - name: Configure kubeconfig
-        run: aws eks update-kubeconfig --name cluster --region us-east-1
-
-      - name: Deploy image to EKS
-        working-directory: starter/backend/k8s
-        env:
-          IMAGE: ${{ needs.Build.outputs.image }}
-        run: |
-          kubectl kustomize . > /tmp/backend-manifest.yaml
-          sed -i "s|image: backend|image: ${IMAGE}|" /tmp/backend-manifest.yaml
-          kubectl apply -f /tmp/backend-manifest.yaml
-
-      - name: Verify deployment
-        run: |
-          kubectl rollout status deployment/backend --timeout=180s
-          kubectl get pods
-          kubectl get service backend
+        run: docker build --tag mp-backend:${{ github.sha }} .

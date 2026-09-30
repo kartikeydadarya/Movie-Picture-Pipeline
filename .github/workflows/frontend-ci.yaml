@@ -7,7 +7,7 @@ on:
       - main
     paths:
       - "starter/frontend/**"
-      - ".github/workflows/frontend-ci.yml"
+      - ".github/workflows/frontend-ci.yaml"
 
 permissions:
   contents: read
@@ -15,6 +15,7 @@ permissions:
 jobs:
   Linting:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -44,6 +45,7 @@ jobs:
 
   Test:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -76,6 +78,7 @@ jobs:
   Build:
     needs: [Linting, Test]
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -104,3 +107,7 @@ jobs:
         env:
           REACT_APP_MOVIE_API_URL: http://localhost:5000
         run: npm run build
+
+      - name: Build Docker image
+        working-directory: starter/frontend
+        run: docker build --build-arg REACT_APP_MOVIE_API_URL=http://localhost:5000 --tag movie-picture-frontend:${{ github.sha }} .
